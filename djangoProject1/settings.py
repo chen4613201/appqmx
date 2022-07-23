@@ -132,12 +132,18 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'static')
 # https://docs.djangoproject.com/en/4.0/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+
+# SIMPLEUI_LOGO = 'http://qungz.photo.store.qq.com/qun-qungz/pgXWi*1gjoDCagh.kCq.Tw!!/V5bCQAyMjE4NTcwMzXpZgFiNbL1Ag
+# !!/800?w5=362&h5=354&rf=viewer_421' SIMPLEUI_INDEX = 'https://www.baidu.com' 隐藏右侧SimpleUI广告链接
+SIMPLEUI_HOME_INFO = False
+SIMPLEUI_LOADING = False  # 显示加载遮罩层
 SIMPLEUI_CONFIG = {
     # 是否使用系统默认菜单，自定义菜单时建议关闭。
     'system_keep': False,
 
     # 用于菜单排序和过滤, 不填此字段为默认排序和全部显示。空列表[] 为全部不显示.
-    'menu_display': ['抄表系统', '合同管理', '客户管理', ' 考勤管理', '运维数据待', '基本配置'],
+    'menu_display': ['抄表系统', '合同管理', '客户管理', '设备管理', '考勤管理', '运维数据待', '基本配置'],
 
     # 设置是否开启动态菜单, 默认为False. 如果开启, 则会在每次用户登陆时刷新展示菜单内容。
     # 一般建议关闭。
@@ -234,16 +240,38 @@ SIMPLEUI_CONFIG = {
             'name': '抄表系统',
             'icon': 'fa fa-tasks',
             'models': [{
-                'name': '抄表登入',
+                'name': '已抄表数据',
                 # 注意url按'/admin/应用名小写/模型名小写/'命名。
                 'url': 'appqmx/cbxt/',
                 'icon': 'fa fa-feather-alt'
             },
-                {
-                    'name': '历史记录',
-                    'icon': 'fa fa-history',
-                    # 'url': 'auth/group/'
-                }
+            {
+                'name': '未抄表数据',
+                # 注意url按'/admin/应用名小写/模型名小写/'命名。
+                'url': 'appqmx/cbxtproxy/',
+                'icon': 'fa fa-feather-alt'
+            },
+            {
+                'name': '历史记录',
+                'icon': 'fa fa-history',
+                # 'url': 'auth/group/'
+            }
+            ]
+        },
+        {
+            'name': '设备管理',
+            'icon': 'fa fa-tasks',
+            'models': [{
+                'name': '设备录入',
+                # 注意url按'/admin/应用名小写/模型名小写/'命名。
+                'url': 'appqmx/jhxt/',
+                'icon': 'fa fa-feather-alt'
+            },
+            {
+                'name': '历史记录',
+                'icon': 'fa fa-history',
+                # 'url': 'auth/group/'
+            }
             ]
         },
     ]

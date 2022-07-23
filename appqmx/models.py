@@ -109,16 +109,7 @@ class jhxT(models.Model):
         verbose_name_plural = verbose_name
 
     def __str__(self):
-        return '%s%s' % (self.jhb_pM, self.jhb_JxiD)
-
-
-# def getohtid():
-#     todaytime = datetime.datetime.now()
-#     # offset = datetime.timedelta(hours=8)  # 服务器时间少8小时
-#     re_date = todaytime.strftime('%Y%m%d')
-#     num = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]
-#     res = "HT" + re_date + "-" +
-#     return res
+        return '%s' % (self.jhb_JxiD)
 
 
 class JbxT(models.Model):
@@ -162,9 +153,8 @@ class HtxT(models.Model):
     user = models.ForeignKey(User, verbose_name='用户', on_delete=models.CASCADE)
     sth_HtyfnamE = models.ForeignKey(KhxT, on_delete=models.CASCADE, verbose_name="客户名称")
     sth_HtjfnamE = models.CharField(max_length=32, default='福建省云启智创科技有限公司', verbose_name="甲方名称")
-    sth_HtpM = models.CharField(max_length=20, verbose_name="品名(主机/周边)")
-    sth_HtxH = models.CharField(max_length=10, verbose_name="型号")
-    sth_HtjH = models.CharField(max_length=10, verbose_name="机号")
+    sth_HtjH = models.ManyToManyField(to=jhxT, verbose_name='机号')
+    # sth_HtjH = models.CharField(max_length=10, verbose_name="机号")
     sth_HtfwdZ = models.CharField(max_length=32, verbose_name="服务地点")
     sth_HtyJ = models.DecimalField(max_digits=7, decimal_places=0, verbose_name="押金金额")
     sth_HtjbfwF = models.DecimalField(max_digits=7, decimal_places=0, verbose_name="基本费")
@@ -185,6 +175,11 @@ class HtxT(models.Model):
         verbose_name = '合同信息表'
         verbose_name_plural = verbose_name
 
+    def __str__(self):
+        return '%s' % self.sth_HtID
+
+
+
 
 class CbxT(models.Model):
     """抄表系统"""
@@ -193,15 +188,16 @@ class CbxT(models.Model):
     stc_CbsycbsJ = models.CharField(max_length=32, verbose_name="上月抄表时间", blank=True)
     user = models.ForeignKey(User, verbose_name='用户', on_delete=models.CASCADE)
     stc_CbbccbsJ = models.CharField(max_length=32, verbose_name="本月抄表时间")
-    stc_CbH = models.DecimalField(max_digits=10, decimal_places=0, verbose_name="本月黑", blank=True, null=True)
-    stc_CbC = models.DecimalField(max_digits=10, decimal_places=0, verbose_name="本月彩", blank=True, null=True)
-    stc_CbsH = models.DecimalField(max_digits=10, decimal_places=0, verbose_name="上月黑", blank=True, null=True)
-    stc_CbsC = models.DecimalField(max_digits=10, decimal_places=0, verbose_name="上月彩", blank=True, null=True)
-    stc_CbsjH = models.DecimalField(max_digits=10, decimal_places=0, verbose_name="实际黑", blank=True, null=True)
-    stc_CbsjC = models.DecimalField(max_digits=10, decimal_places=0, verbose_name="实际彩", blank=True, null=True)
-    stc_CbczhjE = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="超张黑金额", blank=True, null=True)
-    stc_CbczcjE = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="超张彩金额", blank=True, null=True)
-    stc_CbbyhJ = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="本机合计", blank=True, null=True)
+    stc_Htbh = models.CharField(max_length=32, verbose_name="合同编号", default=None, blank=True, null=True)
+    stc_CbH = models.DecimalField(max_digits=10, decimal_places=0, verbose_name="本月黑",default=0, blank=True, null=True)
+    stc_CbC = models.DecimalField(max_digits=10, decimal_places=0, verbose_name="本月彩",default=0, blank=True, null=True)
+    stc_CbsH = models.DecimalField(max_digits=10, decimal_places=0, verbose_name="上月黑",default=0, blank=True, null=True)
+    stc_CbsC = models.DecimalField(max_digits=10, decimal_places=0, verbose_name="上月彩",default=0, blank=True, null=True)
+    stc_CbsjH = models.DecimalField(max_digits=10, decimal_places=0, verbose_name="实际黑",default=0, blank=True, null=True)
+    stc_CbsjC = models.DecimalField(max_digits=10, decimal_places=0, verbose_name="实际彩",default=0, blank=True, null=True)
+    stc_CbczhjE = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="超张黑金额",default=0, blank=True, null=True)
+    stc_CbczcjE = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="超张彩金额",default=0, blank=True, null=True)
+    stc_CbbyhJ = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="本机合计",default=0, blank=True, null=True)
     stc_CbxH = models.CharField(max_length=32, verbose_name="型号", null=True)
     stc_CbjH = models.CharField(max_length=32, verbose_name="机号", null=True)
 
@@ -212,3 +208,10 @@ class CbxT(models.Model):
 
     def __str__(self):
         return self.stc_CbqC
+
+
+class CbxTProxy(CbxT):
+    class Meta:
+        proxy = True
+        verbose_name = '未抄表数据'
+        verbose_name_plural = verbose_name

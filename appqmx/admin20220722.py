@@ -1,19 +1,15 @@
 # Register your models here.
 import datetime
-from decimal import Decimal
 from functools import update_wrapper
-from unicodedata import decimal
-from dateutil.relativedelta import relativedelta
+
 from django.contrib import admin
 from django.db import connections
-from django.db.models import Q
-from django.forms import forms
 from django.http import HttpResponse
 import csv
 
 from django.urls import path
 
-from appqmx.models import KhxT, HtxT, YhxT, CbxT, jhxT, CbxTProxy
+from appqmx.models import KhxT, HtxT, YhxT, CbxT, jhxT
 from django.contrib import messages
 from django.utils.translation import ngettext
 # from .admin_jh import jhxTAdmin
@@ -62,15 +58,11 @@ class HtxTAdmin(admin.ModelAdmin):
                 jhobj = jhxT.objects.get(pk=customer_ht['sth_HtjH'])
                 ht_jH = jhobj.jhb_JxiD
                 ht_xH = jhobj.jhb_xH
-                try:
-                    cb_info = CbxT.objects.filter(stc_Htbh=customer_ht['sth_HtID'], stc_CbjH=customer_ht['sth_HtjH']).values('stc_CbqC')
-                except self.model.DoesNotExist:
-                    cb_info = None
-                today = datetime.datetime.today()
+                cb_info = CbxT.objects.filter(stc_CbjH=ht_jH).values('stc_CbqC')
+
                 if not cb_info:
                     for i in range(1, int(ht['sth_HtczzqS']) + 1):
-                        use_date = today+relativedelta(months=+i-1)
-                        CbxT.objects.create(stc_CbaecnamE=kh_name, stc_Htbh=customer_ht['sth_HtID'], stc_CbqC=i, stc_CbbccbsJ=use_date.strftime('%Y-%m'),user_id=kh_user, stc_CbxH=ht_xH,
+                        CbxT.objects.create(stc_CbaecnamE=kh_name, stc_CbqC=i, user_id=kh_user, stc_CbxH=ht_xH,
                                         stc_CbjH=ht_jH)
                 else:
                     self.message_user(request, format_html('该合同已生成过抄表信息'), level=messages.WARNING)
@@ -127,32 +119,8 @@ class CbxTAdmin(admin.ModelAdmin):
         return response
 
     def save_model(self, request, obj, form, change):
-        # 作为当前抄表时间
-        todaytime = datetime.date.today()
-        # 上期抄表数据
-        try:
-            sq_cb = self.model.objects.get(stc_CbqC=str(int(obj.stc_CbqC)-1), stc_Htbh=obj.stc_Htbh, stc_CbjH=obj.stc_CbjH)
-            # obj.stc_CbsycbsJ = sq_cb.stc_CbbccbsJ
-            obj.stc_CbsH = sq_cb.stc_CbH
-            obj.stc_CbsC = sq_cb.stc_CbC
-        except self.model.DoesNotExist:
-            # obj.stc_CbsycbsJ = ''
-            obj.stc_CbsH = 0
-            obj.stc_CbsC = 0
-
         obj.user = request.user
-        obj.stc_CbsjH = obj.stc_CbH
-        obj.stc_CbsjC = obj.stc_CbC
-        obj.stc_CbbccbsJ = str(todaytime.strftime('%Y-%m'))
-
-        super().save_model(request, obj, form, change)
-
-
-    # def changelist_view(self, request, extra_context=None):
-    #     super(CbxTAdmin, self).changelist_view(request)
-    #     option = self.form.(label=u'下拉框', queryset=CbxT.objects.all())
-    #     self.fields = self.fields.append(option)
-
+        obj.save()
 
     def get_form(self, request, obj=None, **kwargs):
         # export_exec_widget = FileUploadWidget()
@@ -161,9 +129,9 @@ class CbxTAdmin(admin.ModelAdmin):
         return form
 
     list_display = (
-        'stc_CbqC', 'stc_CbaecnamE','stc_Htbh', 'stc_CbsycbsJ', 'stc_CbH', 'stc_CbC', 'stc_CbsH', 'stc_CbsC',
+        'stc_CbqC', 'stc_CbaecnamE', 'stc_CbsycbsJ', 'stc_CbH', 'stc_CbC', 'stc_CbsH', 'stc_CbsC',
         'stc_CbsjH', 'stc_CbsjC', 'stc_CbczhjE', 'stc_CbczcjE', 'stc_CbbyhJ', 'stc_CbbccbsJ', 'stc_CbxH', 'stc_CbjH')
-    search_fields = ('stc_CbjH', 'stc_Htbh', 'stc_CbaecnamE', 'stc_CbxH')
+    search_fields = ('stc_CbjH', 'stc_CbaecnamE', 'stc_CbxH')
     list_editable = ['stc_CbC', 'stc_CbH']
     actions = ['gen_cb_data', 'delete_all_data', 'export_as_csv']
     list_filter = ['stc_CbqC']
@@ -172,9 +140,17 @@ class CbxTAdmin(admin.ModelAdmin):
 
     def get_queryset(self, request):
         qs = super(CbxTAdmin, self).get_queryset(request)
+        id_list = []
+        query_result = None
         if request.user.is_superuser:
-            return qs.exclude(Q(stc_CbH=0) | Q(stc_CbC=0))
-        return qs.filter(user=request.user).exclude(Q(stc_CbH=0) | Q(stc_CbC=0))
+            with connections['default'].cursor() as cursor:
+                cursor.execute('select min(id) from CbxT group by stc_CbjH,stc_CbbccbsJ')
+                idlist = cursor.fetchall()
+                for item in idlist:
+                    id_list.append(item[0])
+                query_result = CbxT.objects.filter(id__in=id_list)
+            return query_result
+        return qs.filter(user=request.user)
 
 
     @admin.action(description='生成数据')
@@ -201,12 +177,12 @@ class CbxTAdmin(admin.ModelAdmin):
                 if cb_previous_id == 0:
                     previous_h_num = 0
                 else:
-                    previous_h_num = list(previous_cb_info)[0]['stc_CbH'] if list(previous_cb_info)[0]['stc_CbH'] else 0
+                    previous_h_num = list(previous_cb_info)[0]['stc_CbH']
                 if cb_previous_id == 0:
                     previous_c_num = 0
                 else:
-                    previous_c_num = list(previous_cb_info)[0]['stc_CbC'] if list(previous_cb_info)[0]['stc_CbC'] else 0
-                # previous_c_sj = todaytime.strftime('%Y-%m')
+                    previous_c_num = list(previous_cb_info)[0]['stc_CbC']
+                previous_c_sj = todaytime
                 current_h_num = cb['stc_CbH'] if cb['stc_CbH'] else 0
                 current_c_num = cb['stc_CbC'] if cb['stc_CbH'] else 0
                 sj_h = int(current_h_num) - int(previous_h_num)
@@ -225,7 +201,8 @@ class CbxTAdmin(admin.ModelAdmin):
                 told_je = ht_jbf + cc_je + hc_je
                 queryset.update(stc_CbsjH=sj_h, stc_CbsjC=sj_c, stc_CbsH=previous_h_num,
                                 stc_CbsC=previous_c_num, stc_CbczhjE=hc_je,
-                                stc_CbczcjE=cc_je, stc_CbbyhJ=told_je, user='1')
+                                stc_CbczcjE=cc_je, stc_CbbyhJ=told_je, stc_CbbccbsJ=previous_c_sj, user='1')
+
 
 
     @admin.action(description='删除所有数据')
@@ -238,27 +215,17 @@ class CbxTAdmin(admin.ModelAdmin):
     gen_cb_data.type = 'primary'
 
 
-
-class CbxTProxyAdmin(CbxTAdmin):
-
-    def get_queryset(self, request):
-        qs = super(CbxTAdmin, self).get_queryset(request)
-        if request.user.is_superuser:
-            return qs.filter(Q(stc_CbH=0) | Q(stc_CbC=0))
-        return qs.filter(user=request.user).filter(Q(stc_CbH=0) | Q(stc_CbC=0))
-
-
 class jhxTAdmin(admin.ModelAdmin):
     list_display = ('user', 'jhb_pM', 'jhb_xH', 'jhb_JxiD' , 'jhb_delete')
 
 
 admin.site.register(jhxT, jhxTAdmin)
 
+
 admin.site.register(KhxT, KhxTAdmin)  # 将表在admin中注册
 admin.site.register(HtxT, HtxTAdmin)
 admin.site.register(YhxT)
 admin.site.register(CbxT, CbxTAdmin)
-admin.site.register(CbxTProxy, CbxTProxyAdmin)
 admin.site.site_header = '云启智创ERP测试版'  # 设置header
 admin.site.site_title = '云启智创ERP'  # 设置title
 admin.site.index_title = '云启智创ERP'
